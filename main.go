@@ -40,13 +40,13 @@ func update(){
 
 
 
-	if err = text.Blit(nil, surface, &sdl.Rect{X: viewport_size.W - (text.W + 200),
-		Y: 200 - (text.H), W: 0, H: 0}); err != nil {
+	if err = text.Blit(nil, surface, &sdl.Rect{X: viewport_size.W/2 - (text.W + viewport_size.W/10)  ,
+		Y: viewport_size.H - (text.H + 50), W: 0, H: 0}); err != nil {
 			panic(err)
 	}
 
 
-	rect = sdl.Rect{0, 0, 200, 200}
+	rect = sdl.Rect{0, viewport_size.H/10, viewport_size.W/2, viewport_size.H/5}
 	surface.FillRect(&rect, 0xffff0000)
 	window.UpdateSurface()
 
@@ -58,7 +58,7 @@ func update(){
 func main() {
 
 	//Parse for audio file inputs
-	InputFile := flag.String("f","Empty","Put filename of mp3")
+	InputFile := flag.String("f","Empty","Put path to MP3 as a flag for song autostart!")
 	flag.Parse()
 	SongLoaded = *InputFile
 
@@ -110,13 +110,14 @@ func main() {
 	//Background Color
 	surface.FillRect(nil, 0x332c2c)
 
+	//Load Hack-Regular Font
 	if font, err = ttf.OpenFont(FONT_PATH, FONT_SIZE); err != nil {
 		panic(err)
 	}
 	defer font.Close()
 
 	// Create a red text with the font
-	if text, err = font.RenderUTF8Blended(SongLoaded, sdl.Color{R: 255, G: 0, B: 0, A: 255}); err != nil {
+	if text, err = font.RenderUTF8Blended("<"+SongLoaded+">", sdl.Color{R: 255, G: 0, B: 0, A: 255}); err != nil {
 		panic(err)
 	}
 	defer text.Free()
