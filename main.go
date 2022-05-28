@@ -4,8 +4,38 @@ import(
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
 	"flag"
-	"fmt"
 )
+
+
+type Button_State int
+
+const(
+	UP Button_State = iota
+	HOVER
+	DOWN
+)
+
+
+
+type Mouse struct{
+	PosX int32
+	PosY int32
+	State uint32
+}
+
+type Button struct{
+	//Texture sdl.Texture
+	Rect	sdl.Rect
+	State	Button_State
+}
+
+type Input struct{
+	Rect	sdl.Rect
+	State	Button_State
+	Text	string
+}
+
+
 
 const(
 	INITIAL_WINDOW_WIDTH = 1920
@@ -18,15 +48,18 @@ var(
 	err error
 	SongLoaded string
 	font *ttf.Font
-	text *sdl.Surface
+	SongDisplay *sdl.Surface
 	viewport_size sdl.Rect
 	surface *sdl.Surface
 	window *sdl.Window
 	renderer *sdl.Renderer
-	rect sdl.Rect
+	loadRect sdl.Rect
+	loadButton Button
+	mouseData Mouse
+	fileOpenerInput Input
 )
 
-func update(){
+func updateRendering(){
 
 	surface, err = window.GetSurface()
 	if err != nil {
@@ -39,24 +72,52 @@ func update(){
 	surface.FillRect(nil, 0x332c2c)
 
 
+	loadRect = sdl.Rect{0, viewport_size.H/10, viewport_size.W/2, viewport_size.H/5}
+	surface.FillRect(&loadRect, 0xffff0000)
 
-	if err = text.Blit(nil, surface, &sdl.Rect{X: viewport_size.W/2 - (text.W + viewport_size.W/10)  ,
-		Y: viewport_size.H - (text.H + 50), W: 0, H: 0}); err != nil {
-			panic(err)
+	fileOpenerInput.Rect = sdl.Rect{viewport_size.W/50, viewport_size.H/3, viewport_size.W/3, viewport_size.H/10}
+	surface.FillRect(&fileOpenerInput.Rect, 0xffff0000)
+
+
+}
+
+func updateText(){
+
+	if err = SongDisplay.Blit(nil, surface, &sdl.Rect{X: viewport_size.W/2 - (SongDisplay.W + viewport_size.W/10),
+		Y: viewport_size.H - (SongDisplay.H + 50), W: 0, H: 0}); err != nil {
+			return
+	}
+
+	if SongDisplay, err = font.RenderUTF8Blended("<"+SongLoaded+">", sdl.Color{R: 255, G: 0, B: 0, A: 255}); err != nil {
+		return
 	}
 
 
-	rect = sdl.Rect{0, viewport_size.H/10, viewport_size.W/2, viewport_size.H/5}
-	surface.FillRect(&rect, 0xffff0000)
-	window.UpdateSurface()
+}
 
+
+func mouseClick(){
+
+	//loadButton interaction
+
+	loadButton.Rect = loadRect
+	println(mouseData.PosX, mouseData.PosY)
+
+
+	if loadButton.Rect.HasIntersection(&sdl.Rect{X: mouseData.PosX, Y: mouseData.PosY, W: 1, H: 1}){
+		loadButton.State = HOVER
+		if mouseData.State == 1 {
+			loadButton.State = DOWN
+		}
+	} else {
+		loadButton.State = UP
+	}
 
 }
 
 
 
 func main() {
-
 	//Parse for audio file inputs
 	InputFile := flag.String("f","Empty","Put path to MP3 as a flag for song autostart!")
 	flag.Parse()
@@ -72,6 +133,7 @@ func main() {
 	if err = sdl.Init(sdl.INIT_EVERYTHING); err != nil {
 		panic(err)
 	}
+
 	defer sdl.Quit()
 
 
@@ -91,14 +153,10 @@ func main() {
 	}
 	defer renderer.Destroy()
 
-	width, height, err := renderer.GetOutputSize()
+	err = window.SetFullscreen(0)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(width, height)
-
-	viewport_size = renderer.GetViewport()
-	err = window.SetFullscreen(0)
 
 
 
@@ -107,8 +165,6 @@ func main() {
 		panic(err)
 	}
 
-	//Background Color
-	surface.FillRect(nil, 0x332c2c)
 
 	//Load Hack-Regular Font
 	if font, err = ttf.OpenFont(FONT_PATH, FONT_SIZE); err != nil {
@@ -116,21 +172,12 @@ func main() {
 	}
 	defer font.Close()
 
-	// Create a red text with the font
-	if text, err = font.RenderUTF8Blended("<"+SongLoaded+">", sdl.Color{R: 255, G: 0, B: 0, A: 255}); err != nil {
+
+	if SongDisplay, err = font.RenderUTF8Blended("<"+SongLoaded+">", sdl.Color{R: 255, G: 0, B: 0, A: 255}); err != nil {
 		panic(err)
 	}
-	defer text.Free()
+	defer SongDisplay.Free()
 
-	if err = text.Blit(nil, surface, &sdl.Rect{X: viewport_size.W - (text.W + 200),
-			Y: 200 - (text.H), W: 0, H: 0}); err != nil {
-				panic(err)
-	}
-
-
-	rect = sdl.Rect{0, 0, 200, 200}
-	surface.FillRect(&rect, 0xffff0000)
-	window.UpdateSurface()
 
 	running := true
 	for running {
@@ -143,8 +190,21 @@ func main() {
 
 			}
 
-		 }
-		update()
 		}
 
+		//Reduces CPU consumption by decreasing the number of rendering cycles
+		sdl.Delay(10)
+
+
+		updateRendering()
+		updateText()
+
+		mouseData.PosX, mouseData.PosY, mouseData.State = sdl.GetMouseState()
+		mouseClick()
+		println(loadButton.State)
+
+
+		window.UpdateSurface()
 	}
+
+}

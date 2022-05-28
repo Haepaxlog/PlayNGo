@@ -1,0 +1,5 @@
+package fileOpener
+
+import (
+	"os"
+)
