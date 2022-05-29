@@ -69,6 +69,7 @@ func updateRendering(){
 	surface, err = window.GetSurface()
 	if err != nil {
 		return
+
 	}
 
 	viewport_size = renderer.GetViewport()
@@ -99,7 +100,7 @@ func updateText(){
 
 	if err = SongDisplay.Blit(nil, surface, &sdl.Rect{X: viewport_size.W/2 - (SongDisplay.W + viewport_size.W/10),
 		Y: viewport_size.H - (SongDisplay.H + 50), W: 0, H: 0}); err != nil {
-			return
+		return
 	}
 
 	//fileOpenerDisplay
@@ -244,18 +245,18 @@ func main() {
 	defer font.Close()
 
 
-	if SongDisplay, err = font.RenderUTF8Blended("<"+SongLoaded+">", sdl.Color{R: 255, G: 0, B: 0, A: 255}); err != nil {
-		panic(err)
-	}
-	defer SongDisplay.Free()
+	//	if SongDisplay, err = font.RenderUTF8Blended("<"+SongLoaded+">", sdl.Color{R: 255, G: 0, B: 0, A: 255}); err != nil {
+	//	panic(err)
+	//}
+	//defer SongDisplay.Free()
 
 
 	fileOpenerInput.Text = "aaa"
 
-	if fileOpenerDisplay, err = font.RenderUTF8Blended(fileOpenerInput.Text, sdl.Color{R: 0, G: 255, B: 0, A: 255}); err != nil {
-		panic(err)
-	}
-	defer fileOpenerDisplay.Free()
+	//if fileOpenerDisplay, err = font.RenderUTF8Blended(fileOpenerInput.Text, sdl.Color{R: 0, G: 255, B: 0, A: 255}); err != nil {
+	//	panic(err)
+	//	}
+	//defer fileOpenerDisplay.Free()
 
 	running := true
 	for running {
