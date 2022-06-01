@@ -5,10 +5,10 @@ import(
 	"github.com/veandco/go-sdl2/ttf"
 	"flag"
 	"fmt"
+	"os"
 	"github.com/Haepaxlog/playngo/ui"
 	"github.com/Haepaxlog/playngo/lib"
 )
-
 
 type Button_State int
 
@@ -17,7 +17,6 @@ const(
 	HOVER
 	DOWN
 )
-
 
 type Button struct{
 	Rect	sdl.Rect
@@ -33,8 +32,6 @@ type Input struct{
 	Display sdl.Rect
 }
 
-
-
 const(
 	INITIAL_WINDOW_WIDTH = 1920
 	INITIAL_WINDOW_HEIGHT = 1080
@@ -49,47 +46,48 @@ var(
 	font *ttf.Font
 	SongDisplay *sdl.Surface
 	FileOpenerDisplay *sdl.Surface
-	viewport_size sdl.Rect
+	viewport sdl.Rect
 	surface *sdl.Surface
 	window *sdl.Window
 	renderer *sdl.Renderer
 	LoadButton *ui.Button
 	mouseData ui.Mouse
 	FileOpenerInput *ui.Input
+	SongPresenter	*ui.Display
 	pressedKeys []uint8
 	FileOpenerData *ui.InputData
 )
 
 func initUI(){
 	LoadButton = ui.CreateButton(renderer, sdl.Rect{0, 100, 1000, 200})
-
 	FileOpenerInput = ui.CreateInput(renderer, sdl.Rect{50, 350, 800, 150})
+	SongPresenter = ui.CreateDisplay(renderer, sdl.Rect{800, 1000, 0, 0}, SongLoaded)
 }
 
 func updateRendering(){
-
-	updateText()
+	if err = updateText(); err != nil {
+		fmt.Fprintf(os.Stderr, "updateText: %q", err)
+	}
 
 	renderer.Clear()
+	viewport = renderer.GetViewport()
 
-	viewport_size = renderer.GetViewport()
-
-	SongDisplayRect := sdl.Rect{viewport_size.W/2 - (SongDisplay.W + viewport_size.W/10),
-		viewport_size.H - (SongDisplay.H + 50) , SongDisplay.W , SongDisplay.H}
-
-	SongDisplayTexture, _ := renderer.CreateTextureFromSurface(SongDisplay)
+	//SongDisplayRect := sdl.Rect{viewport.W/2 - (SongDisplay.W + viewport.W/10),
+	//	viewport.H - (SongDisplay.H + 50) , SongDisplay.W , SongDisplay.H}
 
 	//Background
 	renderer.SetDrawColor(0x33,0x2c,0x2c,0xFF)
-	renderer.FillRect(&viewport_size)
+	renderer.FillRect(&viewport)
 	//loadButton
 	LoadButton.Render(renderer, sdl.Color{0xFF,0x00,0x00,0xFF})
 	//FileOpener
-	FileOpenerInput.Render(renderer, sdl.Color{0xFF,0x00,0x00,0xFF}, sdl.Color{0x00,0x00,0xFF,0xFF}, FileOpenerDisplay)
-
-	/*TextRendering*/
+	if err := FileOpenerInput.Render(renderer, sdl.Color{0xFF,0x00,0x00,0xFF}, sdl.Color{0x00,0x00,0xFF,0xFF}, FileOpenerDisplay); err != nil {
+		fmt.Fprintf(os.Stderr, "FileOpenerInput.Render: %q", err)
+	}
 	//SongDisplay
-	renderer.Copy(SongDisplayTexture, nil, &SongDisplayRect)
+	if err := SongPresenter.Render(renderer, SongDisplay); err != nil {
+		fmt.Fprintf(os.Stderr, "SongPresenter.Render: &q", err)
+	}
 
 	renderer.Present()
 
@@ -106,24 +104,21 @@ func updateRendering(){
 	*/
 }
 
-func updateText(){
-
+func updateText() (error){
 	if SongDisplay, err = font.RenderUTF8Blended("<"+SongLoaded+">", sdl.Color{R: 255, G: 0, B: 0, A: 255}); err != nil {
-		return
+		return err
 	}
 
-
 	if FileOpenerDisplay, err = font.RenderUTF8Blended(" " +FileOpenerData.Text, sdl.Color{R: 0, G: 255, B: 0, A: 255}); err != nil {
-		return
+		return err
 	}
 
 	println(FileOpenerDisplay.W, FileOpenerDisplay.H)
-
+	return nil
 }
 
 
 func mouseClick(){
-
 	println(mouseData.X, mouseData.Y)
 	LoadButton.CheckState(&mouseData)
 
@@ -132,17 +127,15 @@ func mouseClick(){
 	}
 	LoadButton.Pressed = false
 
-
 	FileOpenerData.CheckState(FileOpenerInput, &mouseData, pressedKeys)
 }
 
 func TrimLastElement(input string) string{
 	length:= len(input)
 	if (length - 1) >= 0 {
-	return input[:(length - 1)]
-	} else {
-		return ""
+		return input[:(length - 1)]
 	}
+	return ""
 }
 
 func checkWritable(input string, rectWidth int32) bool {
@@ -154,8 +147,6 @@ func checkWritable(input string, rectWidth int32) bool {
 	return false
 }
 
-
-
 func main() {
 	InputFile := flag.String("f","Empty","Put path to MP3 as a flag for song autostart!")
 	flag.Parse()
@@ -163,57 +154,47 @@ func main() {
 
 	string, err := lib.GetAudioPlaylist(SongLoaded)
 	if err != nil {
-		panic(err)
+		fmt.Fprintf(os.Stderr, "lib.GetAudioPlaylist: %q", err)
 	}
 	fmt.Println(string)
 
-
 	if err = ttf.Init(); err != nil {
-		panic(err)
+		panic("ttf.Init")
 	}
 	defer ttf.Quit()
 
-
 	if err = sdl.Init(sdl.INIT_EVERYTHING); err != nil {
-		panic(err)
+		panic("sdl.Init")
 	}
-
 	defer sdl.Quit()
 
-
 	window, err = sdl.CreateWindow("Play 'N Go", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED,
-		INITIAL_WINDOW_WIDTH, INITIAL_WINDOW_HEIGHT, sdl.WINDOW_SHOWN)
+									INITIAL_WINDOW_WIDTH, INITIAL_WINDOW_HEIGHT, sdl.WINDOW_SHOWN)
 	if err != nil {
-		panic(err)
+		panic("sdl.CreateWindow")
 	}
 	defer window.Destroy()
 
 	//Required by WMs
 	window.SetResizable(true)
 
-
-	renderer, err = sdl.CreateRenderer(window, -1, sdl.RENDERER_ACCELERATED)
-	if err != nil {
-		panic(err)
+	if renderer, err = sdl.CreateRenderer(window, -1, sdl.RENDERER_ACCELERATED); err != nil {
+		panic("sdl.CreateRenderer")
 	}
 	defer renderer.Destroy()
 
-	err = window.SetFullscreen(0)
-	if err != nil {
-		panic(err)
+	if err = window.SetFullscreen(0); err != nil{
+		panic("window.SetFullscreen")
 	}
 
-
-
-	surface, err = window.GetSurface()
-	if err != nil {
-		panic(err)
+	if surface, err = window.GetSurface(); err != nil {
+		panic("window.GetSurface")
 	}
 	defer surface.Free()
 
 
 	if font, err = ttf.OpenFont(FONT_PATH, FONT_SIZE); err != nil {
-		panic(err)
+		panic("ttf.OpenFont")
 	}
 	defer font.Close()
 
@@ -221,7 +202,6 @@ func main() {
 
 	running := true
 	for running {
-
 		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 			switch t := event.(type) {
 			case *sdl.QuitEvent:
@@ -237,16 +217,13 @@ func main() {
 				if t.Keysym.Sym == sdl.K_RETURN {
 					println("return pressed")
 				}
-				if t.Keysym.Sym == sdl.K_BACKSPACE && t.State == sdl.PRESSED {
+				if t.Keysym.Sym == sdl.K_BACKSPACE && t.State == sdl.PRESSED && FileOpenerData.Pressed == true {
 					FileOpenerData.Text = TrimLastElement(FileOpenerData.Text)
 				}
-
 			}
-
 		}
 
 		initUI()
-
 		updateRendering()
 
 		pressedKeys = sdl.GetKeyboardState()
@@ -260,10 +237,7 @@ func main() {
 		} else {
 			sdl.StopTextInput()
 		}
-
 		//Reduces CPU consumption by decreasing the number of rendering cycles (FPS)
 		sdl.Delay(16)
-
 	}
-
 }

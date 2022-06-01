@@ -25,7 +25,6 @@ func getDir(path string) ([]string, error){
 		}
 
 	strOut = strOut[:(len(strOut) - 1)]
-
 	return strOut, nil
 }
 
@@ -55,6 +54,5 @@ func GetAudioPlaylist(path string) ([]string, error){
 			y++
 		}
 	}
-
 	return playlist, nil
 }

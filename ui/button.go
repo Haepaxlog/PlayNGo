@@ -19,23 +19,24 @@ type Button struct{
 }
 
 
-
 type Mouse struct{
 	X int32
 	Y int32
 	State uint32
 }
 
-
+const(
+	SOURCE_WINDOW_WIDTH = 1920
+	SOURCE_WINDOW_HEIGHT = 1080
+	)
 
 func CreateButton(renderer *sdl.Renderer, rect sdl.Rect) (*Button){
 	viewport := renderer.GetViewport()
 
-	rect.X = int32(float32(rect.X) * float32(viewport.W)/float32(1920))
-	rect.Y = int32(float32(rect.Y) * float32(viewport.H)/float32(1080))
-	rect.W = int32(float32(rect.W) * float32(viewport.W)/float32(1920))
-	rect.H = int32(float32(rect.H) * float32(viewport.H)/float32(1080))
-
+	rect.X = int32(float32(rect.X) * float32(viewport.W)/float32(SOURCE_WINDOW_WIDTH))
+	rect.Y = int32(float32(rect.Y) * float32(viewport.H)/float32(SOURCE_WINDOW_HEIGHT))
+	rect.W = int32(float32(rect.W) * float32(viewport.W)/float32(SOURCE_WINDOW_WIDTH))
+	rect.H = int32(float32(rect.H) * float32(viewport.H)/float32(SOURCE_WINDOW_HEIGHT))
 	button := Button{rect, UP, false}
 
 	return &button
@@ -47,14 +48,12 @@ func (button *Button) Render(renderer *sdl.Renderer, color sdl.Color){
 }
 
 func (button *Button) CheckState(mouseData *Mouse) {
+	button.State = UP
 	if button.Rect.HasIntersection(&sdl.Rect{mouseData.X, mouseData.Y, 1, 1}){
 		button.State = HOVER
 		if mouseData.State == 1{
 			button.State = DOWN
 			button.Pressed = true
 		}
-	} else {
-		button.State = UP
 	}
-
 }
