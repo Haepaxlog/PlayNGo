@@ -4,7 +4,9 @@ import(
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
 	"flag"
+	"fmt"
 	"github.com/Haepaxlog/playngo/ui"
+	"github.com/Haepaxlog/playngo/lib"
 )
 
 
@@ -158,6 +160,12 @@ func main() {
 	InputFile := flag.String("f","Empty","Put path to MP3 as a flag for song autostart!")
 	flag.Parse()
 	SongLoaded = *InputFile
+
+	string, err := lib.GetAudioPlaylist(SongLoaded)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string)
 
 
 	if err = ttf.Init(); err != nil {

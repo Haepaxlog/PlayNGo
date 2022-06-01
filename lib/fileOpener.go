@@ -1,5 +1,0 @@
-package fileOpener
-
-import (
-	"os"
-)
