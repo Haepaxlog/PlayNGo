@@ -18,20 +18,6 @@ const(
 	DOWN
 )
 
-type Button struct{
-	Rect	sdl.Rect
-	State	Button_State
-	Pressed bool
-}
-
-type Input struct{
-	Rect	sdl.Rect
-	State	Button_State
-	Text	string
-	Pressed bool
-	Display sdl.Rect
-}
-
 const(
 	INITIAL_WINDOW_WIDTH = 1920
 	INITIAL_WINDOW_HEIGHT = 1080
@@ -51,17 +37,20 @@ var(
 	window *sdl.Window
 	renderer *sdl.Renderer
 	LoadButton *ui.Button
-	mouseData ui.Mouse
+	mouseData *ui.Mouse
 	FileOpenerInput *ui.Input
 	SongPresenter	*ui.Display
 	pressedKeys []uint8
 	FileOpenerData *ui.InputData
+	testListbox	*ui.Listbox
+	testListboxData *ui.Listbox
 )
 
 func initUI(){
 	LoadButton = ui.CreateButton(renderer, sdl.Rect{0, 100, 1000, 200})
 	FileOpenerInput = ui.CreateInput(renderer, sdl.Rect{50, 350, 800, 150})
 	SongPresenter = ui.CreateDisplay(renderer, sdl.Rect{800, 1000, 0, 0}, SongLoaded)
+	testListbox = ui.CreateListbox(renderer, testListboxData, sdl.Rect{0, 600, 1000, 300}, []string{"Hello","Hi","Hey","Ahoi", "Morgen","Tag","Moin","Guten","Ge"})
 }
 
 func updateRendering(){
@@ -87,6 +76,11 @@ func updateRendering(){
 	//SongDisplay
 	if err := SongPresenter.Render(renderer, SongDisplay); err != nil {
 		fmt.Fprintf(os.Stderr, "SongPresenter.Render: &q", err)
+	}
+
+	if err := testListbox.Render(renderer, testListboxData, sdl.Color{0x00,0xFF,0x00,0xFF}, sdl.Color{0xFF,0x00,0x00,0xFF},
+				sdl.Color{0x00,0x00,0xFF,0xFF}, font); err != nil {
+		fmt.Fprintf(os.Stderr, "testListbox.Render: &q", err)
 	}
 
 	renderer.Present()
@@ -120,14 +114,19 @@ func updateText() (error){
 
 func mouseClick(){
 	println(mouseData.X, mouseData.Y)
-	LoadButton.CheckState(&mouseData)
+	LoadButton.CheckState(mouseData)
 
 	if LoadButton.Pressed == true {
 		println("loading music") //Insert dir open function
 	}
 	LoadButton.Pressed = false
 
-	FileOpenerData.CheckState(FileOpenerInput, &mouseData, pressedKeys)
+	FileOpenerData.CheckState(FileOpenerInput, mouseData, pressedKeys)
+	testListbox.CheckState(mouseData, testListboxData)
+	println("testListbox:",testListbox.DownButton.State)
+	println("testListbox:",testListbox.DownButton.Pressed)
+	println("testListbox:",testListbox.Click)
+	println("SONG:",testListbox.Song)
 }
 
 func TrimLastElement(input string) string{
@@ -199,6 +198,9 @@ func main() {
 	defer font.Close()
 
 	FileOpenerData = ui.InitInputData()
+	testListboxData = ui.InitListboxData()
+
+	mouseData = &ui.Mouse{0,0, 0, ui.UNCLICKED}
 
 	running := true
 	for running {
@@ -228,6 +230,7 @@ func main() {
 
 		pressedKeys = sdl.GetKeyboardState()
 		mouseData.X, mouseData.Y, mouseData.State = sdl.GetMouseState()
+		println("MOUSE:", mouseData.State)
 		mouseClick()
 		println(LoadButton.State)
 		println(FileOpenerData.State)

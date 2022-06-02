@@ -5,11 +5,18 @@ import (
 )
 
 type Button_State int
+type Mouse_State int
 
 const(
 	UP	Button_State = iota
 	HOVER
 	DOWN
+)
+
+const(
+	CLICKED	Mouse_State = iota
+	PENDING
+	UNCLICKED
 )
 
 type Button struct{
@@ -23,6 +30,7 @@ type Mouse struct{
 	X int32
 	Y int32
 	State uint32
+	PressedState Mouse_State
 }
 
 const(
